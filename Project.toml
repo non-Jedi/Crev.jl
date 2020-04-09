@@ -8,6 +8,6 @@ Sodium = "4f5b5e99-b0ad-42cd-b47a-334e172ec8bd"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
-julia = "1"
 Sodium = "1"
 YAML = "0.4"
+julia = "1"
