@@ -1,0 +1,5 @@
+* Crev.jl
+
+[[https://github.com/crev-dev/crev][Crev]] is a common standard for doing Code REView and sharing the
+results of doing so. This Julia package will attempt to integrate it
+with the Julia package manager.

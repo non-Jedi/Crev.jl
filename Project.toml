@@ -1,0 +1,13 @@
+name = "Crev"
+uuid = "1a8d4a3e-61ae-43db-8643-31ccd82e3e6e"
+authors = ["Adam Beckmeyer <adam_gpg@thebeckmeyers.xyz>"]
+version = "0.1.0"
+
+[deps]
+Sodium = "4f5b5e99-b0ad-42cd-b47a-334e172ec8bd"
+YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+
+[compat]
+julia = "1"
+Sodium = "1"
+YAML = "0.4"
