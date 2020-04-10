@@ -1,8 +1,22 @@
+# This file is part of Crev.jl.
+#
+# Crev.jl is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Crev.jl is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+
 module Crev
 
 export ProofStream
 
 import YAML
+
+include("Crypto.jl")
 
 const M{T} = Union{Nothing,T}
 
