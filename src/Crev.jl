@@ -16,7 +16,7 @@ export ProofStream
 
 import YAML
 
-include("Crypto.jl")
+include("Signing.jl")
 
 const M{T} = Union{Nothing,T}
 

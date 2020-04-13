@@ -10,10 +10,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 
-module Crypto
+module Signing 
 
 using Sodium: LibSodium
 const LS = LibSodium
+
+export PublicKey, KeyPair
 
 abstract type Key end
 
