@@ -1,0 +1,9 @@
+language: julia
+julia:
+  - 1.0
+  - 1
+  - nightly
+matrix:
+  allow_failures:
+    - julia: nightly
+coveralls: true
