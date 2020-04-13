@@ -1,4 +1,5 @@
 * Crev.jl
+[[https://travis-ci.org/non-Jedi/Crev.jl][https://travis-ci.org/non-Jedi/Crev.jl.svg?branch=master]] [[https://coveralls.io/github/non-Jedi/Crev.jl?branch=master][https://coveralls.io/repos/github/non-Jedi/Crev.jl/badge.svg?branch=master]]
 
 [[https://github.com/crev-dev/crev][Crev]] is a common standard for doing Code REView and sharing the
 results of doing so. This Julia package will attempt to integrate it
