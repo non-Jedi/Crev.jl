@@ -12,13 +12,18 @@
 
 module Signing 
 
+# TODO: use libsodium base64-encoding instead since it offers a
+# url-safe option to match cargo-crev:
+# https://github.com/crev-dev/cargo-crev/blob/89982a281d53316e489c4214e60b618e312fe7e2/crev-common/src/lib.rs#L50
+using Base64: base64encode, base64decode
 using Sodium: LibSodium
 const LS = LibSodium
 
-export PublicKey, KeyPair
+export PublicKey, KeyPair, sign!, sign, verify
 
 abstract type Key end
 
+"Represent an ed25519 public key."
 mutable struct PublicKey <: Key
     data::NTuple{LS.crypto_sign_ed25519_PUBLICKEYBYTES % Int, Cuchar}
 end
@@ -35,6 +40,11 @@ Base.unsafe_convert(::Type{Ptr{Cvoid}}, k::Key) = pointer_from_objref(k)
 
 Base.shred!(k::Key) = GC.@preserve k LS.sodium_memzero(k, sizeof(k))
 
+"""
+    KeyPair()
+
+Generate an ed25519 keypair.
+"""
 struct KeyPair
     pk::PublicKey
     sk::SecretKey
@@ -48,5 +58,45 @@ function KeyPair()
     GC.@preserve pk sk LS.crypto_sign_ed25519_keypair(pk, sk)
     KeyPair(pk, sk)
 end
+
+"""
+    sign!(sig, text, secretkey)
+
+Sign `text` with ed25519 `secretkey` and store signature in `sig`.
+"""
+function sign!(sig::Vector{Cuchar}, text, sk::SecretKey)
+    @assert sizeof(sig) == LS.crypto_sign_ed25519_BYTES
+    l = Ref{UInt64}()
+    GC.@preserve sig text sk LS.crypto_sign_ed25519_detached(
+        sig, l, text, sizeof(text), sk)
+    resize!(sig, l[])
+end
+
+"""
+    sign(text, secretkey)
+
+Return a base64-encoded signature for `text` signed by ed25519 `secretkey`.
+"""
+function sign(text, sk::SecretKey)
+    sig = Vector{Cuchar}(undef, LS.crypto_sign_ed25519_BYTES)
+    sign!(sig, text, sk)
+    base64encode(sig)
+end
+
+"""
+    verify(sig, text, publickey)
+
+Return `true` if `sig` is a valid signature of `text` by ed25519 `publickey`.
+
+If `sig` is an `AbstractString`, it is assumed to be base64-encoded.
+"""
+function verify(sig::Vector{Cuchar}, text, pk::PublicKey)
+    @assert sizeof(sig) == LS.crypto_sign_ed25519_BYTES
+    0 == GC.@preserve sig text pk LS.crypto_sign_ed25519_verify_detached(
+        sig, text, sizeof(text), pk)
+end
+
+verify(sig::AbstractString, text, pk::PublicKey) =
+    verify(base64decode(sig), text, pk)
 
 end # module
