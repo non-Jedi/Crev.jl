@@ -12,14 +12,50 @@
 
 module Signing 
 
-# TODO: use libsodium base64-encoding instead since it offers a
-# url-safe option to match cargo-crev:
-# https://github.com/crev-dev/cargo-crev/blob/89982a281d53316e489c4214e60b618e312fe7e2/crev-common/src/lib.rs#L50
-using Base64: base64encode, base64decode
 using Sodium: LibSodium
 const LS = LibSodium
 
 export PublicKey, KeyPair, sign!, sign, verify
+
+"""
+    base64encode(bin)
+
+Return a `String` of data from `bin` base64-encoded.
+"""
+function base64encode(bin)
+    b64_maxlen = LS.sodium_base64_ENCODED_LEN(
+        sizeof(bin), LS.sodium_base64_VARIANT_URLSAFE_NO_PADDING)
+    b64 = Vector{Cuchar}(undef, b64_maxlen)
+    GC.@preserve bin b64 LS.sodium_bin2base64(
+        pointer(b64), b64_maxlen, bin, sizeof(bin),
+        LS.sodium_base64_VARIANT_URLSAFE_NO_PADDING)
+    GC.@preserve b64 unsafe_string(pointer(b64))
+end
+
+"""
+    base64decode!(bin, b64)
+
+Decode base64-encoded `b64` and store the result in `bin`.
+"""
+function base64decode!(bin, b64)
+    bin_len = Ref{Csize_t}()
+    status = GC.@preserve bin b64 LS.sodium_base642bin(
+        bin, sizeof(bin), b64, sizeof(b64), C_NULL, bin_len, C_NULL,
+        LS.sodium_base64_VARIANT_URLSAFE_NO_PADDING)
+    status == 0 || error("Unable to decode")
+    resize!(bin, bin_len[])
+end
+
+"""
+    base64decode(b64)
+
+Decode base64-encoded `b64` and store results as `Vector{UInt8}`.
+"""
+function base64decode(b64)
+    bin = Vector{UInt8}(undef, sizeof(b64))
+    base64decode!(bin, b64)
+    bin
+end
 
 abstract type Key end
 

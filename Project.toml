@@ -4,7 +4,6 @@ authors = ["Adam Beckmeyer <adam_gpg@thebeckmeyers.xyz>"]
 version = "0.1.0"
 
 [deps]
-Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 Sodium = "4f5b5e99-b0ad-42cd-b47a-334e172ec8bd"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
