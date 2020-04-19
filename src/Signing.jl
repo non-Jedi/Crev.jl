@@ -43,7 +43,7 @@ function base64decode!(bin, b64)
         bin, sizeof(bin), b64, sizeof(b64), C_NULL, bin_len, C_NULL,
         LS.sodium_base64_VARIANT_URLSAFE_NO_PADDING)
     status == 0 || error("Unable to decode")
-    resize!(bin, bin_len[])
+    bin_len[] == sizeof(bin) || resize!(bin, bin_len[])
 end
 
 """
@@ -93,6 +93,14 @@ function KeyPair()
 
     GC.@preserve pk sk LS.crypto_sign_ed25519_keypair(pk, sk)
     KeyPair(pk, sk)
+end
+
+function KeyPair(pk::AbstractString, sk::AbstractString)
+    _pk = PublicKey(ntuple(_-> 0x00, Val(LS.crypto_sign_ed25519_PUBLICKEYBYTES % Int)))
+    _sk = SecretKey(ntuple(_-> 0x00, Val(LS.crypto_sign_ed25519_SECRETKEYBYTES % Int)))
+    GC.@preserve _pk base64decode!(_pk, pk)
+    GC.@preserve _sk base64decode!(_sk, sk)
+    KeyPair(_pk, _sk)
 end
 
 """

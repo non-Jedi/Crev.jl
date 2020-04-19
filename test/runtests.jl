@@ -48,6 +48,10 @@ review:
     @test count == 3
 end
 
+const kp1 = Crev.Signing.KeyPair(
+    "MsDfuccCJUs-ACAB-JF_jsPiNw8DDlbXKw91v20BQyQ",
+    "fKqEyUdGBPpCkfajQUzN46c6kO5bgZqCJOoma_UstYEywN-5xwIlSz4AIAH4kX-Ow-I3DwMOVtcrD3W_bQFDJA")
+
 @testset "Signing" begin
     kp = Crev.Signing.KeyPair()
     @test any(b-> b != 0x00, kp.pk.data)
@@ -56,4 +60,10 @@ end
     @test all(b-> b === 0x00, kp.pk.data)
     finalize(kp.sk)
     @test all(b-> b === 0x00, kp.sk.data)
+    @test Crev.Signing.base64encode(kp1.pk) == "MsDfuccCJUs-ACAB-JF_jsPiNw8DDlbXKw91v20BQyQ"
+    @test Crev.Signing.sign("hello world", kp1.sk) ==
+        "JCZUYUZQ7cJuPUX5zRFw_GAJ42_wrC0rUPyj_j0CtgHTobX6HfhPOgNN7o6i4T0lzQBJATr4yqK_2oGASi96Dw"
+    @test Crev.Signing.verify(
+        "JCZUYUZQ7cJuPUX5zRFw_GAJ42_wrC0rUPyj_j0CtgHTobX6HfhPOgNN7o6i4T0lzQBJATr4yqK_2oGASi96Dw",
+        "hello world", kp1.pk)
 end
