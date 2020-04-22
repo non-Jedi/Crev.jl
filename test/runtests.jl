@@ -38,11 +38,14 @@ review:
     # Test that we can iterate through the right number of proofs
     count = 0
     for review in ProofStream(IOBuffer(review1))
+        # TODO: can't verify existing signatures
+        @test_broken review isa Crev.Proof
         count += 1
     end
     @test count == 1
     count = 0
     for review in ProofStream(IOBuffer(review1^3))
+        @test_broken review isa Crev.Proof
         count += 1
     end
     @test count == 3

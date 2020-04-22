@@ -64,6 +64,12 @@ mutable struct PublicKey <: Key
     data::NTuple{LS.crypto_sign_ed25519_PUBLICKEYBYTES % Int, Cuchar}
 end
 
+function PublicKey(pk::AbstractString)
+    bin = base64decode(pk)
+    resize!(bin, LS.crypto_sign_ed25519_PUBLICKEYBYTES)
+    GC.@preserve bin unsafe_load(Base.unsafe_convert(Ptr{PublicKey}, pointer(bin)))
+end
+
 mutable struct SecretKey <: Key
     data::NTuple{LS.crypto_sign_ed25519_SECRETKEYBYTES % Int, Cuchar}
 end

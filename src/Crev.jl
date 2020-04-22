@@ -21,7 +21,7 @@ include("Signing.jl")
 const M{T} = Union{Nothing,T}
 
 struct CrevID
-    id::String
+    id::Signing.PublicKey
     url::String
 end
 
@@ -51,27 +51,31 @@ end
 
 struct MalformedProof end
 
-function Proof(yaml::AbstractString)
+function Proof(yaml::AbstractString, sig::AbstractString)
     try
         parsed_yaml = YAML.load(yaml)
 
         # Ensure id-type is crev
         @assert parsed_yaml["from"]["id-type"] == "crev"
-        id = CrevID(parsed_yaml["from"]["id"], parsed_yaml["from"]["url"])
+        id = CrevID(Signing.PublicKey(parsed_yaml["from"]["id"]), parsed_yaml["from"]["url"])
 
-        package = Package(
-            parsed_yaml["package"]["source"],
-            parsed_yaml["package"]["name"],
-            VersionNumber(parsed_yaml["package"]["version"]),
-            get(parsed_yaml["package"], "revision", nothing),
-            parsed_yaml["package"]["digest"])
+        if Signing.verify(sig, yaml, id.id)
+            package = Package(
+                parsed_yaml["package"]["source"],
+                parsed_yaml["package"]["name"],
+                VersionNumber(parsed_yaml["package"]["version"]),
+                get(parsed_yaml["package"], "revision", nothing),
+                parsed_yaml["package"]["digest"])
 
-        review = Review(
-            parsed_yaml["review"]["thoroughness"],
-            parsed_yaml["review"]["understanding"],
-            parsed_yaml["review"]["rating"])
+            review = Review(
+                parsed_yaml["review"]["thoroughness"],
+                parsed_yaml["review"]["understanding"],
+                parsed_yaml["review"]["rating"])
 
-        Proof(parsed_yaml["version"], parsed_yaml["date"], id, package, review)
+            Proof(parsed_yaml["version"], parsed_yaml["date"], id, package, review)
+        else
+            MalformedProof()
+        end
     catch e
         if e isa YAML.ParserError || e isa KeyError || e isa AssertionError
             return MalformedProof()
@@ -94,14 +98,16 @@ Base.IteratorSize(::Type{ProofStream}) = Base.SizeUnknown()
 Base.eltype(::Type{ProofStream}) = Union{Proof,MalformedProof}
 
 function Base.iterate(ps::ProofStream, state=nothing)
-    readuntil(ps.io, "-----BEGIN CREV PACKAGE REVIEW-----")
+    readuntil(ps.io, "-----BEGIN CREV PACKAGE REVIEW-----\n"; keep=true)
     yaml = readuntil(ps.io, "-----BEGIN CREV PACKAGE REVIEW SIGNATURE-----")
-    sig = readuntil(ps.io,  "-----END CREV PACKAGE REVIEW-----")
+    readline(ps.io)
+    sig = readline(ps.io)
+    readuntil(ps.io,  "-----END CREV PACKAGE REVIEW-----"; keep=true)
 
     if isempty(yaml) || isempty(sig)
         nothing
     else
-        (Proof(yaml), nothing)
+        (Proof(yaml, sig), nothing)
     end
 end
 
