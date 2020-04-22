@@ -17,18 +17,18 @@ const review1 = """
 version: -1
 date: "2018-12-18T23:10:21.111854021-08:00"
 from:
-    id-type: crev
-    id: FYlr8YoYGVvDwHQxqEIs89reKKDy-oWisoO0qXXEfHE
-    url: "https://github.com/dpc/crev-proofs"
+  id-type: crev
+  id: FYlr8YoYGVvDwHQxqEIs89reKKDy-oWisoO0qXXEfHE
+  url: "https://github.com/dpc/crev-proofs"
 package:
-    source: "https://crates.io"
-    name: log
-    version: 0.4.6
-    digest: BhDmOOjfESqs8i3z9qsQANH8A39eKklgQKuVtrwN-Tw
+  source: "https://crates.io"
+  name: log
+  version: 0.4.6
+  digest: BhDmOOjfESqs8i3z9qsQANH8A39eKklgQKuVtrwN-Tw
 review:
-    thoroughness: low
-    understanding: medium
-    rating: positive
+  thoroughness: low
+  understanding: medium
+  rating: positive
 -----BEGIN CREV PACKAGE REVIEW SIGNATURE-----
 4R2WjtU-avpBznmJYAl44H1lOYgETu3RSNhCDcB4GpqhJbSRkd-eqnUuhHgDUs77OlhUf7BSA0dydxaALwx0Dg
 -----END CREV PACKAGE REVIEW-----
@@ -38,17 +38,18 @@ review:
     # Test that we can iterate through the right number of proofs
     count = 0
     for review in ProofStream(IOBuffer(review1))
-        # TODO: can't verify existing signatures
-        @test_broken review isa Crev.Proof
+        @test review isa Crev.Proof
         count += 1
     end
     @test count == 1
     count = 0
     for review in ProofStream(IOBuffer(review1^3))
-        @test_broken review isa Crev.Proof
+        @test review isa Crev.Proof
         count += 1
     end
     @test count == 3
+    # TODO: test malformed YAML produces MalformedProof
+    # TODO: test bad sig produces MalformedProof
 end
 
 const kp1 = Crev.Signing.KeyPair(
