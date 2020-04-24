@@ -49,39 +49,83 @@ struct Proof
     review::Review
 end
 
-struct MalformedProof end
+struct MalformedProof{E<:Exception}
+    err::E
+end
 
 function Proof(yaml::AbstractString, sig::AbstractString)
-    try
-        parsed_yaml = YAML.load(yaml)
-
-        # Ensure id-type is crev
-        @assert parsed_yaml["from"]["id-type"] == "crev"
-        id = CrevID(Signing.PublicKey(parsed_yaml["from"]["id"]), parsed_yaml["from"]["url"])
-
-        if Signing.verify(sig, yaml, id.id)
-            package = Package(
-                parsed_yaml["package"]["source"],
-                parsed_yaml["package"]["name"],
-                VersionNumber(parsed_yaml["package"]["version"]),
-                get(parsed_yaml["package"], "revision", nothing),
-                parsed_yaml["package"]["digest"])
-
-            review = Review(
-                parsed_yaml["review"]["thoroughness"],
-                parsed_yaml["review"]["understanding"],
-                parsed_yaml["review"]["rating"])
-
-            Proof(parsed_yaml["version"], parsed_yaml["date"], id, package, review)
-        else
-            MalformedProof()
-        end
+    parsed_yaml = try
+        YAML.load(yaml)
     catch e
-        if e isa YAML.ParserError || e isa KeyError || e isa AssertionError
-            return MalformedProof()
-        else
-            rethrow()
+        return MalformedProof(e)
+    end
+
+    id_okay = haskey(parsed_yaml, "from") && let from = parsed_yaml["from"]
+        haskey(from, "id-type") &&
+        haskey(from, "id") &&
+        haskey(from, "url") &&
+        from["id-type"] == "crev" &&
+        from["id"] isa AbstractString &&
+        from["url"] isa AbstractString
+    end
+    if id_okay
+        id = CrevID(Signing.PublicKey(parsed_yaml["from"]["id"]), parsed_yaml["from"]["url"])
+    else
+        return MalformedProof(ErrorException("Can't parse \"from\" field of YAML."))
+    end
+
+    Signing.verify(sig, yaml, id.id) ||
+        return MalformedProof(ErrorException("Failed to verify Proof signature."))
+
+    package_okay = haskey(parsed_yaml, "package") && let pkg = parsed_yaml["package"]
+        haskey(pkg, "source") &&
+        haskey(pkg, "name") &&
+        haskey(pkg, "version") &&
+        haskey(pkg, "digest") &&
+        pkg["source"] isa AbstractString &&
+        pkg["name"] isa AbstractString &&
+        pkg["version"] isa AbstractString &&
+        pkg["digest"] isa AbstractString &&
+        (!haskey(pkg, "revision") || pkg["revision"] isa AbstractString)
+    end
+    if package_okay
+        v = try
+            VersionNumber(parsed_yaml["package"]["version"])
+        catch e
+            return MalformedProof(e)
         end
+        package = Package(
+            parsed_yaml["package"]["source"],
+            parsed_yaml["package"]["name"],
+            v,
+            get(parsed_yaml["package"], "revision", nothing),
+            parsed_yaml["package"]["digest"])
+    else
+        return MalformedProof(ErrorException("Can't parse \"package\" field of YAML."))
+    end
+    
+    review_okay = haskey(parsed_yaml, "review") && let rev = parsed_yaml["review"]
+        haskey(rev, "thoroughness") &&
+        haskey(rev, "understanding") &&
+        haskey(rev, "rating") &&
+        rev["thoroughness"] isa AbstractString &&
+        rev["understanding"] isa AbstractString &&
+        rev["rating"] isa AbstractString
+    end
+    if review_okay
+        review = Review(parsed_yaml["review"]["thoroughness"],
+                        parsed_yaml["review"]["understanding"],
+                        parsed_yaml["review"]["rating"])
+    else
+        return MalformedProof(ErrorException("Can't parse \"review\" field of YAML."))
+    end
+    
+    toplevel_okay = haskey(parsed_yaml, "version") && parsed_yaml["version"] == -1 &&
+        haskey(parsed_yaml, "date") && parsed_yaml["date"] isa AbstractString
+    if toplevel_okay
+        return Proof(parsed_yaml["version"], parsed_yaml["date"], id, package, review)
+    else
+        return MalformedProof(ErrorException("Can't parse top level fields of YAML."))
     end
 end
 
