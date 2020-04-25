@@ -10,7 +10,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 
-using Test, Crev
+using Test, Crev, YAML
 
 const review1 = """
 -----BEGIN CREV PACKAGE REVIEW-----
@@ -34,6 +34,65 @@ review:
 -----END CREV PACKAGE REVIEW-----
 """
 
+const malformed_yaml = """
+-----BEGIN CREV PACKAGE REVIEW-----
+version -1
+date: "2018-12-18T23:10:21.111854021-08:00"
+from: hello
+  id type: crev
+  id: FYlr8YoYGVvDwHQxqEIs89reKKDy-oWisoO0qXXEfHE
+  url: "https://github.com/dpc/crev-proofs"
+package:
+  source: "https://crates.io"
+-----BEGIN CREV PACKAGE REVIEW SIGNATURE-----
+4R2WjtU-avpBznmJYAl44H1lOYgETu3RSNhCDcB4GpqhJbSRkd-eqnUuhHgDUs77OlhUf7BSA0dydxaALwx0Dg
+-----END CREV PACKAGE REVIEW-----
+"""
+
+const broken_id = """
+-----BEGIN CREV PACKAGE REVIEW-----
+version: -1
+date: "2018-12-18T23:10:21.111854021-08:00"
+from:
+  id-type: crev
+  id: FYlr8YoYGVvDwHQxqEIs89reKKDy-oWisoO0qXXEfHE
+  url: 5
+package:
+  source: "https://crates.io"
+  name: log
+  version: 0.4.6
+  digest: BhDmOOjfESqs8i3z9qsQANH8A39eKklgQKuVtrwN-Tw
+review:
+  thoroughness: low
+  understanding: medium
+  rating: positive
+-----BEGIN CREV PACKAGE REVIEW SIGNATURE-----
+4R2WjtU-avpBznmJYAl44H1lOYgETu3RSNhCDcB4GpqhJbSRkd-eqnUuhHgDUs77OlhUf7BSA0dydxaALwx0Dg
+-----END CREV PACKAGE REVIEW-----
+"""
+
+const bad_signature = """
+-----BEGIN CREV PACKAGE REVIEW-----
+version: -1
+date: "2018-12-18T23:10:21.111854021-08:00"
+from:
+  id-type: crev
+  id: FYlr8YoYGVvDwHQxqEIs89reKKDy-oWisoO0qXXEfHE
+  url: "https://github.com/dpc/crev-proofs"
+package:
+  source: "https://crates.io"
+  name: log
+  version: 0.4.6
+  digest: BhDmOOjfESqs8i3z9qsQANH8A39eKklgQKuVtrwN-Tw
+review:
+  thoroughness: low
+  understanding: medium
+  rating: positive
+-----BEGIN CREV PACKAGE REVIEW SIGNATURE-----
+4R2W5tU-avpBznmJYAl44H1lOYgETu3RSNhCDcB4GpqhJbSRkd-eqnUuhHgDUs77OlhUf7BSA0dydxaALwx0Dg
+-----END CREV PACKAGE REVIEW-----
+"""
+
 @testset "Proof Stream" begin
     # Test that we can iterate through the right number of proofs
     count = 0
@@ -48,8 +107,16 @@ review:
         count += 1
     end
     @test count == 3
-    # TODO: test malformed YAML produces MalformedProof
-    # TODO: test bad sig produces MalformedProof
+
+    for review in ProofStream(IOBuffer(malformed_yaml^2))
+        @test review isa Crev.MalformedProof{YAML.ParserError}
+    end
+    for review in ProofStream(IOBuffer(broken_id^2))
+        @test review isa Crev.MalformedProof{ErrorException}
+    end
+    for review in ProofStream(IOBuffer(bad_signature^2))
+        @test review isa Crev.MalformedProof{ErrorException}
+    end
 end
 
 const kp1 = Crev.Signing.KeyPair(

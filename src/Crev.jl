@@ -49,7 +49,7 @@ struct Proof
     review::Review
 end
 
-struct MalformedProof{E<:Exception}
+struct MalformedProof{E}
     err::E
 end
 
@@ -73,9 +73,6 @@ function Proof(yaml::AbstractString, sig::AbstractString)
     else
         return MalformedProof(ErrorException("Can't parse \"from\" field of YAML."))
     end
-
-    Signing.verify(sig, yaml, id.id) ||
-        return MalformedProof(ErrorException("Failed to verify Proof signature."))
 
     package_okay = haskey(parsed_yaml, "package") && let pkg = parsed_yaml["package"]
         haskey(pkg, "source") &&
@@ -119,6 +116,9 @@ function Proof(yaml::AbstractString, sig::AbstractString)
     else
         return MalformedProof(ErrorException("Can't parse \"review\" field of YAML."))
     end
+
+    Signing.verify(sig, yaml, id.id) ||
+        return MalformedProof(ErrorException("Failed to verify Proof signature."))
     
     toplevel_okay = haskey(parsed_yaml, "version") && parsed_yaml["version"] == -1 &&
         haskey(parsed_yaml, "date") && parsed_yaml["date"] isa AbstractString
